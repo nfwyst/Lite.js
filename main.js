@@ -197,7 +197,7 @@
     }
 
     eq(id) {
-      let pass = id && typeof id === 'number' && id < this.length;
+      let pass = typeof id === 'number' && id < this.length;
       if(!pass) return null;
       return w.$(this[id]);
     }
