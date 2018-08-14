@@ -5,6 +5,8 @@
   let parseTagName = Symbol('parseTagName');
   let getSetContent = Symbol('getSetContent');
   let insert = Symbol('insert');
+  let Events = new Map();
+  let bind = Symbol('bind');
 
   class Base extends Array {
     constructor(...props) {
@@ -125,6 +127,72 @@
           type: 'POST',
           url,
           data
+        });
+      }
+    }
+
+    static delegate(agent, type, selector, fn) {
+      agent.addEventListener(type, (e) => {
+        let target = e.target;
+        let curTarget = e.currentTarget;
+        let nodes = [...agent.querySelectorAll(selector)];
+        while(target !== curTarget) {
+          if(nodes.includes(target)) {
+            return fn.call(target, e);
+          }
+          target = target.parentNode;
+        }
+      }, false);
+    }
+
+    [bind](item, type) {
+      console.log(Events);
+      item.addEventListener(type, (e) => {
+        let fns = Events.get(item).get(type);
+        fns && fns.forEach((fn) => {
+          fn.call(item, e);
+        });
+      }, false);
+    }
+
+    on(type = null, selector = null, fn = null) {
+      if(typeof type !== 'string' || type === null) return null;
+      if (typeof selector === 'function') {
+        return this.forEach((_, item) => {
+          let typeMap = null;
+          if(!Events.get(item)) {
+            typeMap = new Map();
+            typeMap.set(type, [selector]);
+            Events.set(item, typeMap);
+            this[bind](item, type);
+          } else {
+            typeMap = Events.get(item).get(type);
+            if(!typeMap) {
+              Events.get(item).set(type, [selector]);
+              this[bind](item, type);
+            } else {
+              Events.get(item).get(type).push(selector);
+            }
+          }
+        });
+      }
+    }
+
+    off(type = null, fn = null) {
+      if(!type && !fn) {
+        Events.set(item, new Map());
+        return this;
+      } else if(typeof type === 'string' && !fn) {
+        return this.forEach((_, item) => {
+          let fns = Events.get(item).get(type);
+          if(fns) {
+            fns.length = 0;
+          }
+        });
+      } else if(typeof type === 'string' && typeof fn === 'function') {
+        return  this.forEach((_, item) => {
+          let fns = Events.get(item).get(type);
+          fns = fns.filter(item => item !== fn);
         });
       }
     }
