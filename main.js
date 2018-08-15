@@ -27,10 +27,12 @@
         });
       } else if(typeof selector === 'object' && HTMLElement[Symbol.hasInstance](selector)) {
         this.push(selector);
+      } else if(typeof selector === 'string' && doc) {
+        this.selector = selector;
+        doc.querySelectorAll(selector).forEach((item) => {
+          this.push(item);
+        });
       }
-      typeof selector === 'string' && doc && doc.querySelectorAll(selector).forEach((item) => {
-        this.push(item);
-      });
       return this;
     }
 
@@ -114,6 +116,24 @@
           }
         }
       }
+    }
+
+    childrens(el) {
+      if (this.length <= 0 || el && !(el instanceof HTMLElement)) return w.$();
+      let childs = [...el ? el.childNodes: this[0].childNodes];
+      childs = [...childs.filter(item => item.nodeType === 1)];
+      if (childs.length <= 0) return w.$();
+      let res = w.$(childs);
+
+      return res;
+    }
+
+    index() {
+      if(this.length <= 0) return -1;
+      let el = this[0];
+      let parentEl = this.parent(el)[0];
+      let childrens = this.childrens(parentEl);
+      return childrens.findIndex(item => item === el);
     }
 
     static ajax(params) {
@@ -385,7 +405,7 @@
     }
 
     parent(el) {
-      if(this.length <= 0 || el && !(el instanceof HTMLElement)) return null;
+      if(this.length <= 0 || el && !(el instanceof HTMLElement)) return w.$();
       let parent = el ? el.parentNode : this[0].parentNode;
       parent = parent && parent.nodeType !== 11 ? parent : null;
       if(!parent) return null;
