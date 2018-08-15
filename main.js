@@ -6,6 +6,7 @@
   let getSetContent = Symbol('getSetContent');
   let insert = Symbol('insert');
   let Events = new Map();
+  let delegateEvents = new Map();
   let bind = Symbol('bind');
 
   class Base extends Array {
@@ -131,14 +132,17 @@
       }
     }
 
-    static delegate(agent, type, selector, fn) {
+    static delegate(agent, type, selector) {
       agent.addEventListener(type, (e) => {
         let target = e.target;
         let curTarget = e.currentTarget;
         let nodes = [...agent.querySelectorAll(selector)];
-        while(target !== curTarget) {
+        let bubble = true;
+        while(bubble && target !== curTarget) {
           if(nodes.includes(target)) {
-            return fn.call(target, e);
+            delegateEvents.get(agent).get(type).get(selector).forEach(fn => {
+              bubble = fn.call(target, e);
+            });
           }
           target = target.parentNode;
         }
@@ -146,7 +150,6 @@
     }
 
     [bind](item, type) {
-      console.log(Events);
       item.addEventListener(type, (e) => {
         let fns = Events.get(item).get(type);
         fns && fns.forEach((fn) => {
@@ -175,13 +178,36 @@
             }
           }
         });
+      } else if(typeof selector === 'string' && typeof fn === 'function') {
+        return this.forEach((_, item) => {
+          let deleMap = null;
+          if(!delegateEvents.get(item)) {
+            deleMap = new Map();
+            let selectorMap = new Map();
+            selectorMap.set(selector, [fn]);
+            deleMap.set(type, selectorMap);
+            delegateEvents.set(item, deleMap);
+            Lite.delegate(item, type, selector);
+          } else {
+            deleMap = delegateEvents.get(item).get(type);
+            if(!deleMap) {
+              let map = new Map();
+              map.set(selector, [fn]);
+              delegateEvents.get(item).set(type, map);
+              Lite.delegate(item, type, selector);
+            } else {
+              delegateEvents.get(item).get(type).get(selector).push(fn);
+            }
+          }
+        });
       }
     }
 
-    off(type = null, fn = null) {
+    off(type = null, fn = null, rfn = null) {
       if(!type && !fn) {
-        Events.set(item, new Map());
-        return this;
+        return this.forEach((_, item) => {
+          Events.set(item, new Map());
+        });
       } else if(typeof type === 'string' && !fn) {
         return this.forEach((_, item) => {
           let fns = Events.get(item).get(type);
@@ -195,6 +221,16 @@
           if(fns.length <= 0) return false;
           fns = fns.filter(item => item !== fn);
           Events.get(item).set(type, fns);
+        });
+      } else if(typeof type === 'string' && typeof fn === 'string' && !rfn) {
+        return this.forEach((_, item) => {
+          delegateEvents.get(item).get(type).set(fn, []);
+        });
+      } else if(typeof type === 'string' && typeof fn === 'string' && typeof rfn === 'function') {
+        return this.forEach((_, item) => {
+          let fns = delegateEvents.get(item).get(type).get(fn);
+          fns.filter(fn => fn !== rfn);
+          delegateEvents.get(item).get(type).set(fn, fns);
         });
       }
     }
