@@ -1,2 +1,3 @@
 # Lite.js
-# a dom control library based on the latest language features
+
+## a dom control library based on the latest language features

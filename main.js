@@ -192,7 +192,9 @@
       } else if(typeof type === 'string' && typeof fn === 'function') {
         return  this.forEach((_, item) => {
           let fns = Events.get(item).get(type);
+          if(fns.length <= 0) return false;
           fns = fns.filter(item => item !== fn);
+          Events.get(item).set(type, fns);
         });
       }
     }
