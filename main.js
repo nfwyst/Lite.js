@@ -101,9 +101,7 @@
     static extend(options = null) {
       if(options && typeof options === 'object') {
         for(let [k, v] of Object.entries(options)) {
-          if(typeof k !== 'number') {
             this[k] = v;
-          }
         }
       }
     }
