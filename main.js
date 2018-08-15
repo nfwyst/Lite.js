@@ -38,11 +38,15 @@
 
     forEach(fn) {
       for(let i = 0; i < this.length; i++) {
-        if (fn(i, this[i])) {
+        if (fn.call(this[i], i, this[i])) {
           return true;
         }
       }
       return this;
+    }
+
+    each(fn) {
+      return this.forEach(fn);
     }
 
     static sibling(cur, dir) {
