@@ -100,12 +100,19 @@
       return this[size]('width');
     }
 
-    static extend(options = null) {
-      if(options && typeof options === 'object') {
-        for(let [k, v] of Object.entries(options)) {
-            this[k] = v;
+    static extend(...props) {
+      let target = null;
+      props.forEach((item, index) => {
+        index === 0 && (target = item);
+        if(typeof item === 'object') {
+          for(let [k, v] of Object.entries(item)) {
+              this[k] = v;
+              if(index !== 0) {
+                target[k] = v;
+              }
+          }
         }
-      }
+      });
     }
 
     extend(options) {
@@ -543,6 +550,8 @@
   w.$ = function(selector) {
     return new Lite(selector)
   }
+
+  w.$.fn = Lite.prototype;
 
   Reflect.ownKeys(Lite).forEach(item => {
     if (typeof Lite[item] === 'function') {
