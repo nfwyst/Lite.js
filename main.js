@@ -1,13 +1,15 @@
 {
-  let w = typeof self === 'undefined' ? global : self;
-  let doc = typeof document === 'undefined' ? null : document;
-  let parseSelector = Symbol('parseSelector');
-  let parseTagName = Symbol('parseTagName');
-  let getSetContent = Symbol('getSetContent');
-  let insert = Symbol('insert');
-  let Events = new Map();
-  let delegateEvents = new Map();
-  let bind = Symbol('bind');
+  const w = typeof self === 'undefined' ? global : self;
+  const doc = typeof document === 'undefined' ? null : document;
+  const parseSelector = Symbol('parseSelector');
+  const parseTagName = Symbol('parseTagName');
+  const getSetContent = Symbol('getSetContent');
+  const insert = Symbol('insert');
+  const Events = new Map();
+  const delegateEvents = new Map();
+  const bind = Symbol('bind');
+  const setStyle = Symbol('setStyle');
+  const size = Symbol('size');
 
   class Base extends Array {
     constructor(...props) {
@@ -52,6 +54,68 @@
   class Lite extends Base {
     constructor(...props) {
       super(...props);
+    }
+
+    [setStyle](el, styles) {
+      for(let [k, v] of Object.entries(styles)) {
+        el.style[k] = v;
+      }
+    }
+
+    [size](type) {
+      if(this.length <= 0 || typeof type !== 'string') return this;
+      let el = this[0];
+      let up = type.replace(type[0], type[0].toUpperCase());
+      let show = w.getComputedStyle ? getComputedStyle(el).display !== 'none' : el.style.display !== 'none';
+      if(el.document) {
+        return el[`inner${up}`];
+      } else if(el.nodeType === 9) {
+        return el.documentElement[`offset${up}`];
+      } else if(el.nodeType === 1 && show) {
+        return el[`offset${up}`];
+      } else if(el.nodeType === 1 && !show) {
+        let res = null;
+        let position = el.style.position;
+        let visible = el.style.visible;
+        this[setStyle](el, {
+          position: 'absolute',
+          visible: 'hidden',
+        });
+        res = el[`offset${up}`];
+        this[setStyle](el, {
+          position,
+          visible,
+        });
+        return res;
+      }
+    }
+
+    height() {
+      return this[size]('height');
+    }
+
+    width() {
+      return this[size]('width');
+    }
+
+    static extend(options = null) {
+      if(options && typeof options === 'object') {
+        for(let [k, v] of Object.entries(options)) {
+          if(typeof k !== 'number') {
+            this[k] = v;
+          }
+        }
+      }
+    }
+
+    extend(options) {
+      if(options && typeof options === 'object') {
+        for(let [k, v] of Object.entries(options)) {
+          if(typeof k !== 'number') {
+            this[k] = v;
+          }
+        }
+      }
     }
 
     static ajax(params) {
@@ -436,12 +500,8 @@
     css(attrs = null, value) {
       if(!attrs && !value) return null;
       if(typeof attrs === 'object') {
-        let mps = new Map();
-        Object.keys(attrs).forEach(attr => {
-          mps.set(Lite.parseCssKey(attr), attrs[attr]);
-        });
         return this.forEach((_, item) => {
-          for(let [k, v] of mps) {
+          for(let [k, v] of attrs) {
             item.style[k] = v;
           }
         });
