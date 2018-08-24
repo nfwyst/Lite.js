@@ -536,7 +536,7 @@
           }
         });
       }
-      if(typeof attrs === 'string' && attrs.split(';') > 1) {
+      if(typeof attrs === 'string' && attrs.split(';').length > 1) {
         return this.forEach((_, item) => {
           item.style.cssText = attrs;
         });
